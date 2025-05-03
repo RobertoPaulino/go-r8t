@@ -23,9 +23,11 @@ type CPU struct {
 
 // NewCPU creates and returns a new CPU instance.
 func NewCPU() *CPU {
-	return &CPU{
+	cpu := &CPU{
 		PC: 0x200, // Program counter starts at 0x200
 	}
+	cpu.ClearScreen() // Clear the display on initialization
+	return cpu
 }
 
 // LoadProgram loads a CHIP-8 program into memory starting at address 0x200.

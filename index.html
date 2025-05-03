@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CHIP-8 Emulator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: row;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+        }
+        .menu {
+            width: 300px;
+            padding: 20px;
+            background-color: #2a2a2a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-y: auto;
+        }
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        canvas {
+            display: block;
+            border: 2px solid #333;
+            background: #000;
+            width: 256px;
+            height: 128px;
+            max-width: 100%;
+            max-height: 100%;
+            margin: auto;
+        }
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+            width: 100%;
+        }
+        input[type="file"] {
+            margin: 10px;
+            width: 100%;
+        }
+        .keyboard-layout {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #333;
+            border-radius: 5px;
+            width: 100%;
+        }
+        .keyboard-layout h3 {
+            margin-top: 0;
+        }
+        .key-row {
+            display: flex;
+            justify-content: center;
+            margin: 5px;
+        }
+        .key {
+            width: 40px;
+            height: 40px;
+            margin: 2px;
+            background-color: #444;
+            border: 1px solid #666;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        #status {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #333;
+            border-radius: 5px;
+            width: 100%;
+            text-align: center;
+        }
+        .error {
+            color: #ff4444;
+        }
+        .success {
+            color: #44ff44;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu">
+        <h1>CHIP-8 Emulator</h1>
+        <div id="status">Loading emulator...</div>
+        <div class="controls">
+            <input type="file" id="romInput" accept=".ch8">
+        </div>
+        <div class="keyboard-layout">
+            <h3>Keyboard Layout</h3>
+            <div class="key-row">
+                <div class="key">1</div>
+                <div class="key">2</div>
+                <div class="key">3</div>
+                <div class="key">C</div>
+            </div>
+            <div class="key-row">
+                <div class="key">4</div>
+                <div class="key">5</div>
+                <div class="key">6</div>
+                <div class="key">D</div>
+            </div>
+            <div class="key-row">
+                <div class="key">7</div>
+                <div class="key">8</div>
+                <div class="key">9</div>
+                <div class="key">E</div>
+            </div>
+            <div class="key-row">
+                <div class="key">A</div>
+                <div class="key">0</div>
+                <div class="key">B</div>
+                <div class="key">F</div>
+            </div>
+        </div>
+    </div>
+    <div class="game-container">
+        <canvas id="game"></canvas>
+    </div>
+    <script src="wasm_exec.js"></script>
+    <script>
+        const go = new Go();
+        let wasmInstance = null;
+        const statusElement = document.getElementById('status');
+
+        function updateStatus(message, isError = false) {
+            statusElement.textContent = message;
+            statusElement.className = isError ? 'error' : 'success';
+        }
+
+        async function init() {
+            try {
+                updateStatus('Loading WebAssembly module...');
+                const response = await fetch('main.wasm');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const bytes = await response.arrayBuffer();
+                const result = await WebAssembly.instantiate(bytes, go.importObject);
+                wasmInstance = result.instance;
+                updateStatus('Running emulator...');
+                await go.run(result.instance);
+                updateStatus('Emulator ready! Load a ROM to start.');
+            } catch (err) {
+                console.error('Error loading WASM:', err);
+                updateStatus(`Error: ${err.message}`, true);
+            }
+        }
+
+        // Handle ROM file upload
+        document.getElementById('romInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                updateStatus('Loading ROM...');
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const romData = new Uint8Array(e.target.result);
+                        console.log('ROM size:', romData.length, 'bytes');
+                        
+                        // Call the Go function to load the ROM
+                        const result = window.loadROM(romData);
+                        if (result === "ROM loaded successfully") {
+                            updateStatus('ROM loaded successfully!');
+                        } else {
+                            throw new Error(result);
+                        }
+                    } catch (err) {
+                        console.error('Error loading ROM:', err);
+                        updateStatus(`Error loading ROM: ${err.message}`, true);
+                    }
+                };
+                reader.onerror = function(err) {
+                    console.error('FileReader error:', err);
+                    updateStatus('Error reading ROM file', true);
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+
+        // Initialize the emulator
+        init();
+    </script>
+</body>
+</html> 
