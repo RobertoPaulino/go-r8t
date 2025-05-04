@@ -7,31 +7,31 @@ package cpu
 //   - y: The register index containing the Y coordinate
 //   - size: The number of bytes of sprite data to draw (height of sprite)
 func (cpu *CPU) DrawSprite(x, y, size uint16) {
-	xCord := uint16(cpu.V[x]) // Cast to uint16 for correct math
-	yCord := uint16(cpu.V[y]) // Cast to uint16 for correct math
+	xPos := uint16(cpu.V[x]) // X coordinate from register VX
+	yPos := uint16(cpu.V[y]) // Y coordinate from register VY
+	cpu.V[0xF] = 0           // Reset collision flag
 
-	cpu.V[0xF] = 0 // Reset collision flag
+	// Loop through each row of the sprite
+	for j := uint16(0); j < size; j++ {
+		// Get the sprite data for this row
+		pixel := cpu.Memory[cpu.I+j]
 
-	// Loop over the sprite rows (from 0 to size-1)
-	for row := uint16(0); row < size; row++ {
-		spriteByte := cpu.Memory[cpu.I+row] // Get the byte for the current row of the sprite
+		// Loop through each bit in the sprite data
+		for i := uint16(0); i < 8; i++ {
+			// Check if the current pixel is set in the sprite data (1)
+			if (pixel & (0x80 >> i)) != 0 {
+				// Calculate the x and y position with wrapping
+				posX := (xPos + i) % 64
+				posY := (yPos + j) % 32
+				idx := posY*64 + posX
 
-		// Loop through each bit (8 bits = 1 byte)
-		for bit := uint16(0); bit < 8; bit++ {
-			// Calculate screen x, y position
-			screenX := (xCord + bit) % 64 // Wrap around horizontally if needed
-			screenY := (yCord + row) % 32 // Wrap around vertically if needed
-
-			// Get the index in the display array
-			displayIndex := screenY*64 + screenX
-
-			// Check if the pixel should be turned off (collision)
-			if (spriteByte & (0x80 >> bit)) != 0 { // Check if the current bit is 1
-				if cpu.Display[displayIndex] == 1 {
-					cpu.V[0xF] = 1 // Set VF flag if there's a collision (pixel was already 1)
+				// Check for collision and set VF if a pixel is flipped
+				if cpu.Display[idx] == 1 {
+					cpu.V[0xF] = 1 // Set collision flag
 				}
-				// Flip the pixel on the screen using XOR
-				cpu.Display[displayIndex] ^= 1
+
+				// XOR the pixel in the display
+				cpu.Display[idx] ^= 1
 			}
 		}
 	}

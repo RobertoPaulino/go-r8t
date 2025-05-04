@@ -144,3 +144,11 @@ func main() {
 		log.Fatal(err)
 	}
 }
+
+// runDemoProgram and related functions aren't compatible with WASM
+// Remove or comment them out since they depend on os package
+
+// The following functions aren't compatible with WebAssembly:
+// - runDemoProgram
+// - createROMsDirectory
+// - loadROM
