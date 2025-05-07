@@ -1,13 +1,9 @@
-//go:build js && wasm
-// +build js,wasm
-
 package main
 
 import (
 	"go-r8t/cpu"
 	"image/color"
 	"log"
-	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -116,23 +112,6 @@ var game *Game
 func main() {
 	game = NewGame()
 
-	// Set up WebAssembly-specific initialization
-	js.Global().Set("loadROM", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		if len(args) != 1 {
-			return "Error: Expected 1 argument"
-		}
-		romData := args[0]
-		if romData.Type() != js.TypeObject {
-			return "Error: Expected Uint8Array"
-		}
-
-		// Copy ROM data to memory
-		romBytes := make([]byte, romData.Length())
-		js.CopyBytesToGo(romBytes, romData)
-		game.cpu.LoadProgram(romBytes)
-		return "ROM loaded successfully"
-	}))
-
 	// Configure the window
 	ebiten.SetWindowTitle("CHIP-8 Emulator")
 	ebiten.SetWindowSize(640, 320)
@@ -144,11 +123,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-
-// runDemoProgram and related functions aren't compatible with WASM
-// Remove or comment them out since they depend on os package
-
-// The following functions aren't compatible with WebAssembly:
-// - runDemoProgram
-// - createROMsDirectory
-// - loadROM

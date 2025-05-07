@@ -46,16 +46,13 @@ func NewCPU() *CPU {
 	cpu := &CPU{
 		PC: 0x200, // Program counter starts at 0x200
 	}
-<<<<<<< HEAD
 	cpu.ClearScreen() // Clear the display on initialization
-=======
 
 	// Load font data into memory at address 0
 	for i, fontByte := range fontSet {
 		cpu.Memory[i] = fontByte
 	}
 
->>>>>>> 71beedc (Terminal display finished, fixed bug with I register not updating correctly)
 	return cpu
 }
 
